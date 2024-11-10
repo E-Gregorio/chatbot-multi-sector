@@ -1,0 +1,19 @@
+{
+  "name": "chatbot-multisectorial",
+  "version": "1.0.0",
+  "description": "Un chatbot multisectorial para asistencia en línea.",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server src --port 3000",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "keywords": [],
+  "author": "Gregorio maldonado",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "@types/node": "^22.9.0",
+    "http-server": "^14.1.1"
+  }
+}

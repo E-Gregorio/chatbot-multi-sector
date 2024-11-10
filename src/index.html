@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiSectorBot - Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">MultiSectorBot</h1>
+            <div class="space-x-4">
+                <button id="bankingBtn" class="px-4 py-2 bg-blue-500 rounded hover:bg-blue-700" data-sector="banking">Banca</button>
+                <button id="ecommerceBtn" class="px-4 py-2 bg-blue-500 rounded hover:bg-blue-700" data-sector="ecommerce">E-Commerce</button>
+                <button id="healthBtn" class="px-4 py-2 bg-blue-500 rounded hover:bg-blue-700" data-sector="health">Salud</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto mt-8 p-4">
+        <div class="flex gap-4">
+            <div class="w-1/4 bg-white rounded-lg shadow p-4">
+                <h2 class="text-xl font-bold mb-4">Información del Sector</h2>
+                <div id="sectorInfo" class="space-y-4">
+                    <p>Selecciona un sector para comenzar</p>
+                </div>
+            </div>
+
+            <div class="w-3/4 bg-white rounded-lg shadow">
+                <div id="chatHeader" class="p-4 border-b">
+                    <h2 class="text-xl font-bold">Chat de Asistencia</h2>
+                    <p id="currentSector" class="text-sm text-gray-600">Sector actual: General</p>
+                </div>
+                
+                <div id="chatMessages" class="h-96 overflow-y-auto p-4 space-y-4">
+                    <div class="flex items-start mb-4">
+                        <div class="bg-blue-100 rounded-lg p-3 max-w-3xl">
+                            <p class="text-sm">¡Hola! Soy MultiSectorBot. ¿En qué puedo ayudarte hoy?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t">
+                    <form id="chatForm" class="flex gap-2">
+                        <input 
+                            type="text" 
+                            id="messageInput"
+                            class="flex-1 p-2 border rounded"
+                            placeholder="Escribe tu mensaje aquí..."
+                            data-testid="message-input"
+                        >
+                        <button 
+                            type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            data-testid="send-button"
+                        >
+                            Enviar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Variable global para mantener el sector actual
+        let currentSector = 'general';
+
+        // Base de conocimiento para respuestas según sector
+        const knowledgeBase = {
+            banking: {
+                keywords: {
+                    saldo: "Tu saldo actual es de $1,000.00",
+                    transferencia: "Para realizar una transferencia, necesito los siguientes datos: cuenta destino, monto y concepto.",
+                    tarjeta: "Puedo ayudarte con información sobre nuestras tarjetas de crédito y débito. ¿Qué te gustaría saber?",
+                    prestamo: "Ofrecemos préstamos personales desde 1,000 hasta 50,000 pesos. ¿Te gustaría conocer las tasas de interés?"
+                },
+                default: "Soy tu asistente bancario. Puedo ayudarte con consultas de saldo, transferencias, tarjetas y préstamos."
+            },
+            ecommerce: {
+                keywords: {
+                    producto: "¿Qué producto estás buscando? Puedo ayudarte a encontrar las mejores opciones.",
+                    pedido: "Para consultar el estado de tu pedido, necesito el número de orden.",
+                    devolucion: "Las devoluciones se pueden realizar dentro de los primeros 30 días de la compra. ¿Tienes el número de orden?",
+                    pago: "Aceptamos diferentes métodos de pago: tarjetas de crédito/débito, PayPal y transferencia bancaria."
+                },
+                default: "Soy tu asistente de compras. Puedo ayudarte a encontrar productos, rastrear pedidos o procesar devoluciones."
+            },
+            health: {
+                keywords: {
+                    cita: "¿Te gustaría agendar una cita médica? Por favor, indícame la especialidad que necesitas.",
+                    doctor: "Contamos con especialistas en diferentes áreas. ¿Qué tipo de doctor necesitas?",
+                    urgencia: "Si es una emergencia médica, por favor llama inmediatamente al 911 o acude a tu centro de urgencias más cercano.",
+                    receta: "Para renovar una receta médica, necesito el número de tu última receta y el nombre del medicamento."
+                },
+                default: "Soy tu asistente de salud. Puedo ayudarte a agendar citas, consultar con doctores o gestionar recetas médicas."
+            },
+            general: {
+                keywords: {
+                    ayuda: "¿En qué puedo ayudarte? Puedo asistirte en temas de banca, comercio electrónico o salud.",
+                    hola: "¡Hola! ¿En qué puedo ayudarte hoy?",
+                    gracias: "¡De nada! ¿Hay algo más en lo que pueda ayudarte?"
+                },
+                default: "No estoy seguro de lo que necesitas. ¿Podrías ser más específico? Puedo ayudarte con temas de banca, comercio electrónico o salud."
+            }
+        };
+
+        // Función para obtener respuesta del chatbot
+        function getBotResponse(message, sector) {
+            const sectorData = knowledgeBase[sector];
+            message = message.toLowerCase();
+            
+            // Buscar coincidencias en las palabras clave del sector
+            for (const [keyword, response] of Object.entries(sectorData.keywords)) {
+                if (message.includes(keyword)) {
+                    return response;
+                }
+            }
+            
+            // Si no hay coincidencias, devolver respuesta por defecto del sector
+            return sectorData.default;
+        }
+
+        // Función para agregar mensaje al chat
+        function addMessage(message, isUser = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isUser ? 'justify-end' : 'items-start'} mb-4`;
+            messageDiv.innerHTML = `
+                <div class="${isUser ? 'bg-blue-600 text-white' : 'bg-blue-100'} rounded-lg p-3 max-w-3xl">
+                    <p class="text-sm">${message}</p>
+                </div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Función para manejar el cambio de sector
+        function handleSectorChange(sector) {
+            currentSector = sector;
+            document.getElementById('currentSector').textContent = `Sector actual: ${sector.charAt(0).toUpperCase() + sector.slice(1)}`;
+            
+            const sectorInfo = document.getElementById('sectorInfo');
+            const sectorContent = {
+                banking: `
+                    <h3 class="font-bold">Servicios Bancarios:</h3>
+                    <ul class="list-disc pl-4">
+                        <li>Consulta de saldo</li>
+                        <li>Transferencias</li>
+                        <li>Pagos de servicios</li>
+                        <li>Información de productos</li>
+                    </ul>
+                `,
+                ecommerce: `
+                    <h3 class="font-bold">Servicios E-Commerce:</h3>
+                    <ul class="list-disc pl-4">
+                        <li>Búsqueda de productos</li>
+                        <li>Estado de pedidos</li>
+                        <li>Devoluciones</li>
+                        <li>Atención al cliente</li>
+                    </ul>
+                `,
+                health: `
+                    <h3 class="font-bold">Servicios de Salud:</h3>
+                    <ul class="list-disc pl-4">
+                        <li>Agendar citas</li>
+                        <li>Consultas médicas</li>
+                        <li>Recordatorios</li>
+                        <li>Recetas médicas</li>
+                    </ul>
+                `
+            };
+            sectorInfo.innerHTML = sectorContent[sector] || 'Selecciona un sector';
+            
+            // Mensaje de bienvenida del nuevo sector
+            addMessage(knowledgeBase[sector].default);
+        }
+
+        // Event Listeners
+        document.querySelectorAll('button[data-sector]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                handleSectorChange(e.target.dataset.sector);
+            });
+        });
+
+        // Manejo del formulario de chat
+        document.getElementById('chatForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                // Añadir mensaje del usuario
+                addMessage(message, true);
+                
+                // Obtener y añadir respuesta del bot
+                setTimeout(() => {
+                    const response = getBotResponse(message, currentSector);
+                    addMessage(response);
+                }, 500);
+                
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
